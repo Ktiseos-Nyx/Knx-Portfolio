@@ -1,0 +1,1 @@
+{"version": "2","cells": [{"cell_type": "markdown","metadata": {},"source": ["# Portfolio Site"], "id": "1"}, {"cell_type": "code","metadata": {},"source": ["cat /workspace/portfolio-site/src/app/page.tsx"],"outputs": [],"execution_count": null,"id": "2"}]}
