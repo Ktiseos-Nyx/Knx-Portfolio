@@ -17,19 +17,19 @@ export const CREATORS: Creator[] = [
   {
     name: "duskfallcrew",
     displayName: "Duskfallcrew",
-    civitaiUsername: "duskfallcrew",
+    civitaiUsername: "ktiseos_nyx",
     role: "Core Member",
   },
   {
     name: "earthnicity",
     displayName: "Earthnicity",
-    civitaiUsername: "earthnicity",
+    civitaiUsername: "ktiseos_t3rra",
     role: "Core Member",
   },
   {
     name: "otnangel",
     displayName: "OtnAngel",
-    civitaiUsername: "otnangel",
+    civitaiUsername: "OtnAngel",
     role: "Core Member",
   },
 ];
