@@ -1,29 +1,38 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useSyncExternalStore, useCallback } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import type { AgeVerificationStatus } from "@/lib/types";
 
 const STORAGE_KEY = "knx-age-verified";
 
-export function useAgeVerification() {
-  const [status, setStatus] = useState<AgeVerificationStatus>("unverified");
+function getStoredStatus(): AgeVerificationStatus {
+  if (typeof window === "undefined") return "unverified";
+  return localStorage.getItem(STORAGE_KEY) === "verified"
+    ? "verified"
+    : "unverified";
+}
 
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "verified") {
-      setStatus("verified");
-    }
-  }, []);
+const subscribe = (cb: () => void) => {
+  window.addEventListener("storage", cb);
+  return () => window.removeEventListener("storage", cb);
+};
+
+export function useAgeVerification() {
+  const storedStatus = useSyncExternalStore(subscribe, getStoredStatus, () => "unverified" as const);
+  const [denied, setDenied] = useState(false);
+
+  const status: AgeVerificationStatus = denied ? "denied" : storedStatus;
 
   const verify = useCallback(() => {
     localStorage.setItem(STORAGE_KEY, "verified");
-    setStatus("verified");
+    // Trigger storage event listener to update useSyncExternalStore
+    window.dispatchEvent(new StorageEvent("storage"));
   }, []);
 
   const deny = useCallback(() => {
-    setStatus("denied");
+    setDenied(true);
   }, []);
 
   return { status, verify, deny };

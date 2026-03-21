@@ -85,5 +85,6 @@ export const SAMPLE_MODELS: Model[] = [
 export const NAV_LINKS = [
   { label: "Home", href: "/" },
   { label: "Models", href: "/models" },
+  { label: "Articles", href: "/articles" },
   { label: "About", href: "/about" },
 ] as const;

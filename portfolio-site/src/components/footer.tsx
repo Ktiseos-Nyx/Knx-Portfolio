@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SITE_NAME, ORG_INFO } from "@/lib/constants";
 
 export function Footer() {
@@ -13,9 +14,17 @@ export function Footer() {
               Overseen by {ORG_INFO.parent}
             </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Open source AI art models for the community.
-          </p>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/tos"
+              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Terms of Service
+            </Link>
+            <p className="text-xs text-muted-foreground">
+              Open source AI art models for the community.
+            </p>
+          </div>
         </div>
       </div>
     </footer>
