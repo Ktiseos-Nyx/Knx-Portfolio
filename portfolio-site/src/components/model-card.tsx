@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { Model } from "@/lib/types";
 import { clsx } from "clsx";
 import { ExternalLink, Lock } from "lucide-react";
@@ -25,11 +26,12 @@ export function ModelCard({ model, isVerified = false }: ModelCardProps) {
             <span className="text-xs">Age verification required</span>
           </div>
         ) : model.thumbnailUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={model.thumbnailUrl}
             alt={model.name}
-            className="h-full w-full object-cover"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover"
           />
         ) : (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
