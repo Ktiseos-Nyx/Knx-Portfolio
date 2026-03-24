@@ -3,8 +3,15 @@ import { CREATORS } from "./constants";
 
 const CIVITAI_API = "https://civitai.com/api/v1";
 
-/** Civitai NSFW levels for images */
-type NsfwLevel = "None" | "Soft" | "Mature" | "X";
+/**
+ * Civitai NSFW levels for images.
+ * The API docs say None/Soft/Mature/X but the site uses PG/PG-13/R/X/XXX.
+ * We accept both and rely primarily on the boolean `nsfw` field.
+ */
+type NsfwLevel = string;
+
+/** Safe nsfwLevel values — covers both API-documented and site-facing names */
+const SAFE_NSFW_LEVELS = new Set(["None", "Soft", "PG", "PG-13"]);
 
 interface CivitaiImage {
   id: string;
@@ -89,12 +96,14 @@ function mapCivitaiModel(item: CivitaiModel): Model | null {
   const firstVersion = item.modelVersions?.[0];
 
   // Pick the safest available thumbnail:
-  // prefer None, then Soft; skip Mature/X entirely
-  const safeImage = firstVersion?.images?.find(
-    (img) => img.nsfwLevel === "None"
-  ) ?? firstVersion?.images?.find(
-    (img) => img.nsfwLevel === "Soft"
-  );
+  // 1. Prefer images where nsfw === false (most reliable field)
+  // 2. Fall back to images with a safe nsfwLevel (covers both API naming schemes)
+  // 3. Last resort: grab the first image available so we don't show "No preview"
+  const images = firstVersion?.images ?? [];
+  const safeImage =
+    images.find((img) => img.nsfw === false) ??
+    images.find((img) => SAFE_NSFW_LEVELS.has(img.nsfwLevel)) ??
+    (item.nsfw ? undefined : images[0]);
 
   // Match creator to our known members
   const matchedCreator = CREATORS.find(
