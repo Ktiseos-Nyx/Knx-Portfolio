@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { ModelCard } from "@/components/model-card";
 import { AgeGate, useAgeVerification } from "@/components/age-gate";
-import { Filter, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react";
 import { clsx } from "clsx";
 import type { Model } from "@/lib/types";
 
@@ -11,6 +11,17 @@ const MODELS_PER_PAGE = 24;
 
 const MODEL_TYPES = ["All", "Checkpoint", "LoRA", "Embedding", "ControlNet"] as const;
 const BASE_MODELS = ["All", "SDXL", "SD 1.5", "Pony", "Flux"] as const;
+
+const SORT_OPTIONS = [
+  { value: "newest", label: "Newest" },
+  { value: "oldest", label: "Oldest" },
+  { value: "most-downloaded", label: "Most Downloaded" },
+  { value: "highest-rated", label: "Highest Rated" },
+  { value: "name-asc", label: "Name (A–Z)" },
+  { value: "name-desc", label: "Name (Z–A)" },
+] as const;
+
+type SortValue = (typeof SORT_OPTIONS)[number]["value"];
 
 interface ModelsClientProps {
   models: Model[];
@@ -22,18 +33,39 @@ export function ModelsClient({ models }: ModelsClientProps) {
   const [typeFilter, setTypeFilter] = useState<string>("All");
   const [baseFilter, setBaseFilter] = useState<string>("All");
   const [showNsfw, setShowNsfw] = useState(false);
+  const [sortBy, setSortBy] = useState<SortValue>("newest");
   const [page, setPage] = useState(1);
 
   const filteredModels = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return models.filter((m) => {
+    const filtered = models.filter((m) => {
       if (typeFilter !== "All" && m.type !== typeFilter) return false;
       if (baseFilter !== "All" && m.baseModel !== baseFilter) return false;
       if (!showNsfw && m.nsfw) return false;
       if (q && !m.name.toLowerCase().includes(q) && !m.tags.some((t) => t.toLowerCase().includes(q)) && !m.creator.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [models, search, typeFilter, baseFilter, showNsfw]);
+
+    // Sort
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          return (b.createdAt ?? "").localeCompare(a.createdAt ?? "");
+        case "oldest":
+          return (a.createdAt ?? "").localeCompare(b.createdAt ?? "");
+        case "most-downloaded":
+          return (b.stats?.downloadCount ?? 0) - (a.stats?.downloadCount ?? 0);
+        case "highest-rated":
+          return (b.stats?.rating ?? 0) - (a.stats?.rating ?? 0);
+        case "name-asc":
+          return a.name.localeCompare(b.name);
+        case "name-desc":
+          return b.name.localeCompare(a.name);
+        default:
+          return 0;
+      }
+    });
+  }, [models, search, typeFilter, baseFilter, showNsfw, sortBy]);
 
   // Reset to page 1 when filters change
   const totalPages = Math.max(1, Math.ceil(filteredModels.length / MODELS_PER_PAGE));
@@ -67,7 +99,21 @@ export function ModelsClient({ models }: ModelsClientProps) {
           />
         </div>
 
-        <Filter size={16} className="text-muted-foreground" />
+        {/* Sort */}
+        <div className="relative inline-flex items-center gap-1.5">
+          <ArrowUpDown size={14} className="text-muted-foreground" />
+          <select
+            value={sortBy}
+            onChange={(e) => { setSortBy(e.target.value as SortValue); setPage(1); }}
+            className="rounded-md border border-border bg-background py-1.5 pl-2 pr-7 text-xs text-foreground focus:border-accent focus:outline-none"
+          >
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
 
         {/* Type filter */}
         <div className="flex gap-1">
