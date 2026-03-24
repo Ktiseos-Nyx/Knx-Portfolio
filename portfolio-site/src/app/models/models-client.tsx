@@ -3,11 +3,11 @@
 import { useState, useMemo } from "react";
 import { ModelCard } from "@/components/model-card";
 import { AgeGate, useAgeVerification } from "@/components/age-gate";
-import { Filter } from "lucide-react";
+import { Filter, Search } from "lucide-react";
 import { clsx } from "clsx";
 import type { Model } from "@/lib/types";
 
-const MODEL_TYPES = ["All", "Checkpoint", "LoRA", "Embedding"] as const;
+const MODEL_TYPES = ["All", "Checkpoint", "LoRA", "Embedding", "ControlNet"] as const;
 const BASE_MODELS = ["All", "SDXL", "SD 1.5", "Pony", "Flux"] as const;
 
 interface ModelsClientProps {
@@ -16,20 +16,21 @@ interface ModelsClientProps {
 
 export function ModelsClient({ models }: ModelsClientProps) {
   const { status: ageStatus } = useAgeVerification();
+  const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("All");
   const [baseFilter, setBaseFilter] = useState<string>("All");
   const [showNsfw, setShowNsfw] = useState(false);
 
-  const filteredModels = useMemo(
-    () =>
-      models.filter((m) => {
-        if (typeFilter !== "All" && m.type !== typeFilter) return false;
-        if (baseFilter !== "All" && m.baseModel !== baseFilter) return false;
-        if (!showNsfw && m.nsfw) return false;
-        return true;
-      }),
-    [models, typeFilter, baseFilter, showNsfw]
-  );
+  const filteredModels = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return models.filter((m) => {
+      if (typeFilter !== "All" && m.type !== typeFilter) return false;
+      if (baseFilter !== "All" && m.baseModel !== baseFilter) return false;
+      if (!showNsfw && m.nsfw) return false;
+      if (q && !m.name.toLowerCase().includes(q) && !m.tags.some((t) => t.toLowerCase().includes(q)) && !m.creator.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [models, search, typeFilter, baseFilter, showNsfw]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
@@ -41,8 +42,20 @@ export function ModelsClient({ models }: ModelsClientProps) {
         </p>
       </div>
 
-      {/* Filters */}
+      {/* Search + Filters */}
       <div className="mb-8 flex flex-wrap items-center gap-4 rounded-lg border border-border bg-card p-4">
+        {/* Search */}
+        <div className="relative w-full sm:w-auto">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search models..."
+            className="w-full rounded-md border border-border bg-background py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none sm:w-56"
+          />
+        </div>
+
         <Filter size={16} className="text-muted-foreground" />
 
         {/* Type filter */}

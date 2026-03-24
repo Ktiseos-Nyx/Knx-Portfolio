@@ -1,7 +1,7 @@
 import Image from "next/image";
 import type { Model } from "@/lib/types";
 import { clsx } from "clsx";
-import { ExternalLink, Lock } from "lucide-react";
+import { ExternalLink, Lock, Download, Star } from "lucide-react";
 
 interface ModelCardProps {
   model: Model;
@@ -69,6 +69,22 @@ export function ModelCard({ model, isVerified = false }: ModelCardProps) {
           ))}
         </div>
 
+        {/* Stats */}
+        {model.stats && (
+          <div className="mb-3 flex items-center gap-3 text-[10px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <Download size={10} />
+              {formatCount(model.stats.downloadCount)}
+            </span>
+            {model.stats.ratingCount > 0 && (
+              <span className="inline-flex items-center gap-1">
+                <Star size={10} />
+                {model.stats.rating.toFixed(1)}
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Footer */}
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">
@@ -88,4 +104,10 @@ export function ModelCard({ model, isVerified = false }: ModelCardProps) {
       </div>
     </div>
   );
+}
+
+function formatCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
 }

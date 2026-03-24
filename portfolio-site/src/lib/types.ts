@@ -19,10 +19,16 @@ export interface Model {
   creator: string; // references Creator.name
   tags: string[];
   baseModel?: string; // e.g. "SDXL", "SD 1.5", "Pony", "Flux"
-  type?: string; // e.g. "Checkpoint", "LoRA", "Embedding"
+  type?: string; // Civitai types: "Checkpoint", "TextualInversion", "LORA", "Controlnet", etc.
   nsfw: boolean;
   thumbnailUrl?: string;
   createdAt?: string;
+  stats?: {
+    downloadCount: number;
+    favoriteCount: number;
+    rating: number;
+    ratingCount: number;
+  };
 }
 
 /** Age verification state */
