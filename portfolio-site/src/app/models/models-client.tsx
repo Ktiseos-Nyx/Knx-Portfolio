@@ -7,7 +7,7 @@ import { Filter } from "lucide-react";
 import { clsx } from "clsx";
 import type { Model } from "@/lib/types";
 
-const MODEL_TYPES = ["All", "Checkpoint", "LoRA", "Embedding"] as const;
+const MODEL_TYPES = ["All", "Checkpoint", "LoRA", "Embedding", "ControlNet"] as const;
 const BASE_MODELS = ["All", "SDXL", "SD 1.5", "Pony", "Flux"] as const;
 
 interface ModelsClientProps {

@@ -3,38 +3,98 @@ import { CREATORS } from "./constants";
 
 const CIVITAI_API = "https://civitai.com/api/v1";
 
+/** Civitai NSFW levels for images */
+type NsfwLevel = "None" | "Soft" | "Mature" | "X";
+
+interface CivitaiImage {
+  id: string;
+  url: string;
+  nsfw: boolean;
+  nsfwLevel: NsfwLevel;
+  width: number;
+  height: number;
+  hash?: string;
+}
+
+interface CivitaiModelVersion {
+  id: number;
+  name: string;
+  description?: string;
+  createdAt: string;
+  baseModel?: string;
+  downloadUrl: string;
+  trainedWords?: string[];
+  images: CivitaiImage[];
+  files?: {
+    sizeKb: number;
+    primary?: boolean;
+  }[];
+  stats?: {
+    downloadCount: number;
+    ratingCount: number;
+    rating: number;
+  };
+}
+
 interface CivitaiModel {
   id: number;
   name: string;
   description?: string;
-  type: string;
+  type: string; // "Checkpoint" | "TextualInversion" | "Hypernetwork" | "AestheticGradient" | "LORA" | "Controlnet" | "Poses"
   nsfw: boolean;
   tags: string[];
+  mode?: "Archived" | "TakenDown" | null;
   creator?: {
     username: string;
+    image?: string | null;
   };
-  modelVersions?: {
-    baseModel?: string;
-    images?: { url: string; nsfw: string }[];
-  }[];
+  modelVersions?: CivitaiModelVersion[];
+  stats?: {
+    downloadCount: number;
+    favoriteCount: number;
+    commentCount: number;
+    ratingCount: number;
+    rating: number;
+  };
 }
 
 interface CivitaiResponse {
   items: CivitaiModel[];
   metadata?: {
     nextPage?: string;
-    currentPage: number;
-    pageSize: number;
-    totalItems: number;
-    totalPages: number;
+    prevPage?: string;
+    currentPage: string;
+    pageSize: string;
+    totalItems: string;
+    totalPages: string;
   };
 }
 
+/** Friendly display names for Civitai model types */
+const TYPE_DISPLAY: Record<string, string> = {
+  Checkpoint: "Checkpoint",
+  TextualInversion: "Embedding",
+  Hypernetwork: "Hypernetwork",
+  AestheticGradient: "Aesthetic Gradient",
+  LORA: "LoRA",
+  Controlnet: "ControlNet",
+  Poses: "Poses",
+};
+
 /** Map a Civitai API model to our internal Model type */
-function mapCivitaiModel(item: CivitaiModel): Model {
+function mapCivitaiModel(item: CivitaiModel): Model | null {
+  // Skip archived or taken-down models
+  if (item.mode === "Archived" || item.mode === "TakenDown") return null;
+
   const firstVersion = item.modelVersions?.[0];
-  // Only use SFW images for thumbnails (NSFW images require auth anyway)
-  const sfwImage = firstVersion?.images?.find((img) => img.nsfw === "None");
+
+  // Pick the safest available thumbnail:
+  // prefer None, then Soft; skip Mature/X entirely
+  const safeImage = firstVersion?.images?.find(
+    (img) => img.nsfwLevel === "None"
+  ) ?? firstVersion?.images?.find(
+    (img) => img.nsfwLevel === "Soft"
+  );
 
   // Match creator to our known members
   const matchedCreator = CREATORS.find(
@@ -54,10 +114,18 @@ function mapCivitaiModel(item: CivitaiModel): Model {
     creator: matchedCreator?.name ?? item.creator?.username ?? "unknown",
     tags: item.tags.slice(0, 8),
     baseModel: firstVersion?.baseModel ?? "Unknown",
-    type: item.type,
+    type: TYPE_DISPLAY[item.type] ?? item.type,
     nsfw: item.nsfw,
-    thumbnailUrl: sfwImage?.url,
-    createdAt: undefined,
+    thumbnailUrl: safeImage?.url,
+    createdAt: firstVersion?.createdAt,
+    stats: item.stats
+      ? {
+          downloadCount: item.stats.downloadCount,
+          favoriteCount: item.stats.favoriteCount,
+          rating: item.stats.rating,
+          ratingCount: item.stats.ratingCount,
+        }
+      : undefined,
   };
 }
 
@@ -80,7 +148,9 @@ export async function fetchCivitaiModels(
     }
 
     const data: CivitaiResponse = await res.json();
-    return data.items.map(mapCivitaiModel);
+    return data.items
+      .map(mapCivitaiModel)
+      .filter((m): m is Model => m !== null);
   } catch (err) {
     console.error(`Failed to fetch Civitai models for ${username}:`, err);
     return [];
