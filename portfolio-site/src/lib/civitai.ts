@@ -134,27 +134,37 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, "").trim();
 }
 
-/** Fetch models from Civitai for a given username */
+/** Fetch models from Civitai for a given username (follows pagination) */
 export async function fetchCivitaiModels(
   username: string
 ): Promise<Model[]> {
+  const allModels: Model[] = [];
+  let nextUrl: string | null =
+    `${CIVITAI_API}/models?username=${encodeURIComponent(username)}&limit=100&sort=Newest`;
+
   try {
-    const url = `${CIVITAI_API}/models?username=${encodeURIComponent(username)}&limit=100&sort=Newest`;
-    const res = await fetch(url, { next: { revalidate: 3600 } }); // cache 1 hour
+    while (nextUrl) {
+      const res = await fetch(nextUrl, { next: { revalidate: 3600 } });
 
-    if (!res.ok) {
-      console.error(`Civitai API error for ${username}: ${res.status}`);
-      return [];
+      if (!res.ok) {
+        console.error(`Civitai API error for ${username}: ${res.status}`);
+        break;
+      }
+
+      const data: CivitaiResponse = await res.json();
+      const mapped = data.items
+        .map(mapCivitaiModel)
+        .filter((m): m is Model => m !== null);
+      allModels.push(...mapped);
+
+      // Follow pagination if there are more pages
+      nextUrl = data.metadata?.nextPage ?? null;
     }
-
-    const data: CivitaiResponse = await res.json();
-    return data.items
-      .map(mapCivitaiModel)
-      .filter((m): m is Model => m !== null);
   } catch (err) {
     console.error(`Failed to fetch Civitai models for ${username}:`, err);
-    return [];
   }
+
+  return allModels;
 }
 
 /** Fetch models for all known creators */
